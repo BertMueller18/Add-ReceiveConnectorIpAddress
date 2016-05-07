@@ -44,10 +44,11 @@
     View entire Active Directory forest (default FALSE)
     
     .EXAMPLE 
-    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName -FileName D:\Scripts\ip.txt
+    Add IP addresses from ip.txt to MYCONNECTOR
+    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName MYCONNECTOR -FileName D:\Scripts\ip.txt
 
     .EXAMPLE 
-    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName -FileName .\ip-new.txt -ViewEntireForest $true
+    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName REMOTECONNECTOR -FileName .\ip-new.txt -ViewEntireForest $true
 
 #> 
 param(
