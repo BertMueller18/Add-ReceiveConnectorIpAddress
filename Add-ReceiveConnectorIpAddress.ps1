@@ -7,7 +7,7 @@
     THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. THE ENTIRE  
     RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER. 
 
-    Version 1.0, 2014-12-03
+    Version 1.1, 2016-05-18
 
     Please send ideas, comments and suggestions to support@granikos.eu 
 
@@ -33,6 +33,7 @@
     Revision History 
     -------------------------------------------------------------------------------- 
     1.0 Initial community release 
+    1.1 Sorting for Exchange servers added
 
     .PARAMETER ConnectorName  
     Name of the connector the new IP addresses should be added to  
@@ -44,19 +45,18 @@
     View entire Active Directory forest (default FALSE)
     
     .EXAMPLE 
-    Add IP addresses from ip.txt to MYCONNECTOR
-    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName MYCONNECTOR -FileName D:\Scripts\ip.txt
+    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName -FileName D:\Scripts\ip.txt
 
     .EXAMPLE 
-    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName REMOTECONNECTOR -FileName .\ip-new.txt -ViewEntireForest $true
+    .\Add-ReceiveConnectorIpAddress.ps1 -ConnectorName -FileName .\ip-new.txt -ViewEntireForest $true
 
 #> 
 param(
-	[parameter(Mandatory=$true,HelpMessage='Name of the Receive Connector',ParameterSetName="RC")]
+	[parameter(Mandatory=$true,HelpMessage='Name of the Receive Connector')]
 		[string] $ConnectorName,
-	[parameter(Mandatory=$true,HelpMessage='Name of the input file name containing IP addresses',ParameterSetName="RC")]
+	[parameter(Mandatory=$true,HelpMessage='Name of the input file name containing IP addresses')]
 		[string] $FileName,
-    [parameter(Mandatory=$false,HelpMessage='View entire Active Directory forest (default FALSE)',ParameterSetName="RC")]
+    [parameter(Mandatory=$false,HelpMessage='View entire Active Directory forest (default FALSE)')]
         [boolean] $ViewEntireForest = $false
 )
 
@@ -137,7 +137,7 @@ function SaveConnectorIpRanges {
 	        }
         }
         # save changes to receive connector
-        Set-ReceiveConnector -RemoteIPRanges $ReceiveConnector.RemoteIPRanges -Identity $ReceiveConnector.Identity | Sort -Unique
+        Set-ReceiveConnector -Identity $ReceiveConnector.Identity -RemoteIPRanges $ReceiveConnector.RemoteIPRanges | Sort -Unique
     }    
 }
 
@@ -151,7 +151,7 @@ if($ViewEntireForest) {
 CheckLogPath
 
 # Fetch all Exchange 2013 Servers
-$allExchangeServers = Get-ExchangeServer | ?{($_.AdminDisplayVersion.Major -eq 15) -and ([string]$_.ServerRole).Contains("ClientAccess")} 
+$allExchangeServers = Get-ExchangeServer | ?{($_.AdminDisplayVersion.Major -eq 15) -and ([string]$_.ServerRole).Contains("ClientAccess")} | Sort-Object
 
 foreach($Server in $AllExchangeServers) {
     Write-Output "Checking receive connector $ConnectorName on server $Server"
