@@ -34,6 +34,7 @@
     -------------------------------------------------------------------------------- 
     1.0 Initial community release 
     1.1 Sorting for Exchange servers added
+    1.2 PowerShell hygiene
 
     .PARAMETER ConnectorName  
     Name of the connector the new IP addresses should be added to  
@@ -62,22 +63,22 @@ param(
 
 Set-StrictMode -Version Latest
 
-$tmpFileFolderName = "ReceiveConnectorIpAddresses"
-$tmpFileLocation = ""
+$tmpFileFolderName = 'ReceiveConnectorIpAddresses'
+$tmpFileLocation = ''
 # Timestamp for use in filename, adjust formatting to your regional requirements
-$timeStamp = Get-Date -Format "yyyy-MM-dd HHmmss"
+$timeStamp = Get-Date -Format 'yyyy-MM-dd HHmmss'
 
 # FUNCTIONS --------------------------------------------------
 
-function CheckLogPath {
+function Test-LogPath {
     $script:tmpFileLocation = Join-Path -Path $PSScriptRoot -ChildPath $tmpFileFolderName
     if(-not (Test-Path $script:tmpFileLocation)) {
-        Write-Verbose "New file folder created"
+        Write-Verbose 'New file folder created'
         New-Item -ItemType Directory -Path $script:tmpFileLocation -Force | Out-Null
     }
 }
 
-function CheckReceiveConnector {
+function Test-ReceiveConnector {
     param(
         [string]$Server
     )
@@ -85,23 +86,23 @@ function CheckReceiveConnector {
     Write-Verbose "Checking Server: $Server"
 
     # Fetch receive connector from server
-    $targetRC = Get-ReceiveConnector -Server $Server | ?{$_.name -eq $ConnectorName} -ErrorAction SilentlyContinue
+    $targetRC = Get-ReceiveConnector -Server $Server | Where-Object{$_.name -eq $ConnectorName} -ErrorAction SilentlyContinue
 
     if($targetRC -ne $null) {
         Write-Verbose "Found connector $ConnectorName on server $Server"
-	    SaveConnectorIpRanges -ReceiveConnector $targetRC
+	    Write-ConnectorIpRanges -ReceiveConnector $targetRC
     }
     else {
         Write-Output "INFO: Connector $ConnectorName NOT found on server $Server"
     }
 }
 
-function SaveConnectorIpRanges {
+function Write-ConnectorIpRanges {
     param (
         $ReceiveConnector
     )
     # Create a list of currently configured IP ranges 
-    $tmpRemoteIpRanges = ""
+    $tmpRemoteIpRanges = ''
     foreach ( $remoteIpRange in ($ReceiveConnector).RemoteIPRanges ) {
         $tmpRemoteIpRanges += "`r`n$remoteIpRange"			
 	}
@@ -114,14 +115,14 @@ function SaveConnectorIpRanges {
     Write-Output $tmpRemoteIpRanges | Out-File -FilePath $fileIpRanges -Force -Encoding UTF8
 
     # Fetch new IP ranges from disk
-    $newIpRangesFileContent = ""
+    $newIpRangesFileContent = ''
     if(Test-Path $FileName) {
 	    Write-Verbose "Reading file $FileName"
 	    $newIpRangesFileContent = Get-Content -Path $FileName
     }
 
     # add new IP ranges, if file exsists and had content
-    if($newIpRangesFileContent -ne ""){
+    if($newIpRangesFileContent -ne ''){
         foreach ($newIpRange in $newIpRangesFileContent ){
 	        Write-Verbose "Checking new Remote IP range $newIpRange in $fileIpRanges"
             # Check if new remote IP range already exists in configure remote IP range of connector
@@ -137,7 +138,7 @@ function SaveConnectorIpRanges {
 	        }
         }
         # save changes to receive connector
-        Set-ReceiveConnector -Identity $ReceiveConnector.Identity -RemoteIPRanges $ReceiveConnector.RemoteIPRanges | Sort -Unique
+        Set-ReceiveConnector -Identity $ReceiveConnector.Identity -RemoteIPRanges $ReceiveConnector.RemoteIPRanges | Sort-Object -Unique
     }    
 }
 
@@ -148,14 +149,12 @@ if($ViewEntireForest) {
     Set-ADServerSettings -ViewEntireForets $true
 }
 
-CheckLogPath
+Test-LogPath
 
 # Fetch all Exchange 2013 Servers
-$allExchangeServers = Get-ExchangeServer | ?{($_.AdminDisplayVersion.Major -eq 15) -and ([string]$_.ServerRole).Contains("ClientAccess")} | Sort-Object
+$allExchangeServers = Get-ExchangeServer | Where-Object{($_.AdminDisplayVersion.Major -eq 15) -and ([string]$_.ServerRole).Contains('ClientAccess')} | Sort-Object
 
 foreach($Server in $AllExchangeServers) {
     Write-Output "Checking receive connector $ConnectorName on server $Server"
-    CheckReceiveConnector -Server $Server
+    Test-ReceiveConnector -Server $Server
 }
-
-
